@@ -16,10 +16,11 @@ function Messages() {
 		state => state.appState.chatId as number
 	);
 
-	const { data: messages, isLoading } = useGetChatMessagesQuery(chatId || 1);
+	const { data: messages, isLoading, isFetching } = useGetChatMessagesQuery(chatId);
 	const { data: users } = useGetUsersQuery();
 
-	if (isLoading || !users) return <div>...loading messages</div>;
+	if (isLoading || isFetching || !messages || !users)
+		return <div>...loading messages</div>;
 
 	return (
 		<div>
@@ -106,25 +107,24 @@ function App() {
 	if (isLoading || !users) return <div>Loading....</div>;
 
 	return (
-		<div className="border">
-			<h1 className="text-4xl">Chat</h1>
+		<div className="grid grid-cols-6 h-screen">
+			<div className="border col-start-1 col-end-3">
+				<select
+					onChange={e => {
+						dispatch(setUserId(+e.target.value));
+					}}>
+					{users.map(user => (
+						<option key={user.id} value={user.id}>
+							{user.name}
+						</option>
+					))}
+				</select>
 
-			<select
-				onChange={e => {
-					dispatch(setUserId(+e.target.value));
-				}}>
-				{users.map(user => (
-					<option key={user.id} value={user.id}>
-						{user.name}
-					</option>
-				))}
-			</select>
-
-			<Roster />
-
-			<Messages />
-
-			{/* <pre>{JSON.stringify(appState)}</pre> */}
+				<Roster />
+			</div>
+			<div className="border col-start-3 col-end-7">
+				<Messages />
+			</div>
 		</div>
 	);
 }
