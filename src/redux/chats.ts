@@ -10,11 +10,11 @@ export const chatsApi = createApi({
 	endpoints: build => ({
 		getChats: build.query<Chat[], number>({
 			// @ts-ignore
-			queryFn: async (arg, queryApi, extraOptions, baseQuery) => {
+			queryFn: async (userId, queryApi, extraOptions, baseQuery) => {
 				const response = await db
 					.from("chat_participants")
 					.select("*, chat:chats(*)")
-					.eq("user_id", arg);
+					.eq("user_id", userId);
 
 				const userChats = (
 					response as PostgrestResponse<{ chat: Chat }>
