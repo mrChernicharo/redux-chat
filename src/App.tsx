@@ -11,6 +11,37 @@ import {
 import { RootState } from "./redux/store";
 import { useGetUsersQuery } from "./redux/users";
 
+function MessageBubble({ message }: { message: Message }) {
+	const userId = useSelector<RootState, number>(
+		state => state.appState.userId as number
+	);
+
+	const { data: users } = useGetUsersQuery();
+
+	if (!users) return <div></div>;
+
+	return (
+		<div
+			className="my-2 py-1 px-2 rounded w-2/3"
+			style={{
+				background: +message.author.id === userId ? "rgb(21, 128, 61)" : "#444",
+				marginInline: +message.author.id === userId ? "auto 1rem" : "1rem auto",
+			}}
+		>
+			<div>{message.author.name}</div>
+			<div>{new Date(message.timestamp).toLocaleString()}</div>
+			<div>{message.body}</div>
+			{message.reactions.map(r => (
+				<div key={r.id}>
+					<div title={users.find(u => u.id === r.user_id)!.name}>
+						{r.reaction}
+					</div>
+				</div>
+			))}
+		</div>
+	);
+}
+
 function MessageDisplay() {
 	const messagePaneRef = useRef<HTMLDivElement>(null);
 
@@ -18,16 +49,19 @@ function MessageDisplay() {
 		state => state.appState.chatId as number
 	);
 
-	const { data: messages, isLoading } = useGetChatMessagesQuery(chatId);
+	const {
+		data: messages,
+		isLoading: chatsLoading,
+		isFetching,
+	} = useGetChatMessagesQuery(chatId);
 
-	const { data: users } = useGetUsersQuery();
-
-	if (isLoading || !messages || !users)
-		return (
-			<div className="relative border h-[calc(100vh-200px)] ">
-				...loading messages
-			</div>
-		);
+	if (messages && messagePaneRef.current) {
+		setTimeout(() => {
+			messagePaneRef.current?.scrollTo({
+				top: 999_999,
+			});
+		}, 0);
+	}
 
 	return (
 		<div className="relative border h-[calc(100vh-200px)] ">
@@ -35,23 +69,9 @@ function MessageDisplay() {
 				ref={messagePaneRef}
 				className="absolute bottom-0 w-full border max-h-[calc(100vh-200px)] overflow-y-auto"
 			>
-				{messages
-					? messages.map(msg => (
-							<div key={msg.id} className="border">
-								<div>{msg.author.name}</div>
-								<div>{new Date(msg.timestamp).toLocaleString()}</div>
-								<div>{msg.body}</div>
-								{msg.reactions.map(r => (
-									<div key={r.id}>
-										<div>
-											{users.find(u => u.id === r.user_id)!.name}
-										</div>
-										<div>{r.reaction}</div>
-									</div>
-								))}
-							</div>
-					  ))
-					: null}
+				{(messages ?? []).map(msg => (
+					<MessageBubble key={msg.id} message={msg} />
+				))}
 			</div>
 		</div>
 	);
