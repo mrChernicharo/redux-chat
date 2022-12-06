@@ -1,48 +1,125 @@
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { Root } from "react-dom/client";
 import { useDispatch, useSelector } from "react-redux";
 import { setChatId, setUserId } from "./redux/app-state";
 import { useGetChatsQuery } from "./redux/chats";
-import { useGetChatMessagesQuery } from "./redux/messages";
+import {
+	Message,
+	useGetChatMessagesQuery,
+	usePostMessageMutation,
+} from "./redux/messages";
 import { RootState } from "./redux/store";
 import { useGetUsersQuery } from "./redux/users";
 
-function Messages() {
-	const userId = useSelector<RootState, number>(
-		state => state.appState.userId as number
-	);
+function MessageDisplay() {
+	const messagePaneRef = useRef<HTMLDivElement>(null);
 
 	const chatId = useSelector<RootState, number>(
 		state => state.appState.chatId as number
 	);
 
-	const { data: messages, isLoading, isFetching } = useGetChatMessagesQuery(chatId);
+	const { data: messages, isLoading } = useGetChatMessagesQuery(chatId);
+
 	const { data: users } = useGetUsersQuery();
 
-	if (isLoading || isFetching || !messages || !users)
-		return <div>...loading messages</div>;
+	if (isLoading || !messages || !users)
+		return (
+			<div className="relative border h-[calc(100vh-200px)] ">
+				...loading messages
+			</div>
+		);
 
 	return (
+		<div className="relative border h-[calc(100vh-200px)] ">
+			<div
+				ref={messagePaneRef}
+				className="absolute bottom-0 w-full border max-h-[calc(100vh-200px)] overflow-y-auto"
+			>
+				{messages
+					? messages.map(msg => (
+							<div key={msg.id} className="border">
+								<div>{msg.author.name}</div>
+								<div>{new Date(msg.timestamp).toLocaleString()}</div>
+								<div>{msg.body}</div>
+								{msg.reactions.map(r => (
+									<div key={r.id}>
+										<div>
+											{users.find(u => u.id === r.user_id)!.name}
+										</div>
+										<div>{r.reaction}</div>
+									</div>
+								))}
+							</div>
+					  ))
+					: null}
+			</div>
+		</div>
+	);
+}
+
+function MessageInput() {
+	const textRef = useRef<HTMLTextAreaElement>(null);
+
+	const chatId = useSelector<RootState, number>(
+		state => state.appState.chatId as number
+	);
+
+	const userId = useSelector<RootState, number>(
+		state => state.appState.userId as number
+	);
+
+	const [postMessage, { data, isLoading }] = usePostMessageMutation();
+
+	return (
+		<div className="">
+			<div className="h-[150px]">
+				<textarea
+					ref={textRef}
+					className="w-full h-full p-2 resize-none"
+					onKeyUp={e => {
+						e.preventDefault();
+						if (
+							e.key === "Enter" &&
+							textRef.current?.value.replace(/\n/g, "")
+						) {
+							postMessage({
+								userId,
+								chatId,
+								body: textRef.current.value,
+							});
+							textRef.current.value = "";
+						}
+					}}
+				/>
+			</div>
+			<div className="flex justify-end border">
+				<button
+					className="w-20 mt-2 mb-1.5 mr-2 rounded-full bg-cyan-700 p-1"
+					onClick={() => {
+						if (textRef.current?.value) {
+							postMessage({
+								userId,
+								chatId,
+								body: textRef.current.value,
+							});
+							textRef.current.value = "";
+						}
+					}}
+				>
+					{isLoading ? "Sending..." : "Send"}
+					{/* Send */}
+				</button>
+			</div>
+		</div>
+	);
+}
+
+function Messages() {
+	return (
 		<div>
-			<h2 className="text-2xl">Messages</h2>
+			<MessageDisplay />
 
-			{messages
-				? messages.map(msg => (
-						<div key={msg.id} className="border">
-							<div>{msg.author.name}</div>
-							<div>{new Date(msg.timestamp).toLocaleString()}</div>
-							<div>{msg.body}</div>
-							{msg.reactions.map(r => (
-								<div key={r.id}>
-									<div>{users.find(u => u.id === r.user_id)!.name}</div>
-									<div>{r.reaction}</div>
-								</div>
-							))}
-						</div>
-				  ))
-				: null}
-
-			{/* <pre>{JSON.stringify(messages, null, 2)}</pre> */}
+			<MessageInput />
 		</div>
 	);
 }
@@ -84,10 +161,12 @@ function Roster() {
 					chats?.map(chat => (
 						<li
 							key={chat.id}
-							style={{ background: chat.id === chatId ? "#999" : "" }}>
+							style={{ background: chat.id === chatId ? "#999" : "" }}
+						>
 							<button
 								className="p-2"
-								onClick={() => dispatch(setChatId(chat.id))}>
+								onClick={() => dispatch(setChatId(chat.id))}
+							>
 								<div>{chat.name}</div>
 							</button>
 						</li>
@@ -112,7 +191,8 @@ function App() {
 				<select
 					onChange={e => {
 						dispatch(setUserId(+e.target.value));
-					}}>
+					}}
+				>
 					{users.map(user => (
 						<option key={user.id} value={user.id}>
 							{user.name}

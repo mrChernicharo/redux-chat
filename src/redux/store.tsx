@@ -1,4 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
+import { setupListeners } from "@reduxjs/toolkit/dist/query";
 import appState from "./app-state";
 import { chatsApi } from "./chats";
 import { messagesApi } from "./messages";
@@ -18,6 +19,8 @@ export const store = configureStore({
 			messagesApi.middleware
 		),
 });
+
+setupListeners(store.dispatch);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

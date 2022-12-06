@@ -8,6 +8,7 @@ body {
 }
 
 input,
-select {
+select,
+textarea {
 	color: #222;
 }
