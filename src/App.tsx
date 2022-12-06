@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { Root } from "react-dom/client";
 import { useDispatch, useSelector } from "react-redux";
 import { setChatId, setUserId } from "./redux/app-state";
@@ -12,32 +12,84 @@ import { RootState } from "./redux/store";
 import { useGetUsersQuery } from "./redux/users";
 
 function MessageBubble({ message }: { message: Message }) {
+	const bubbleRef = useRef<HTMLDivElement>(null);
+
 	const userId = useSelector<RootState, number>(
 		state => state.appState.userId as number
 	);
 
+	const [isHovered, setIsHovered] = useState(false);
+
 	const { data: users } = useGetUsersQuery();
 
-	if (!users) return <div></div>;
+	if (!users) return null;
 
 	return (
-		<div
-			className="my-2 py-1 px-2 rounded w-2/3"
-			style={{
-				background: +message.author.id === userId ? "rgb(21, 128, 61)" : "#444",
-				marginInline: +message.author.id === userId ? "auto 1rem" : "1rem auto",
-			}}
-		>
-			<div>{message.author.name}</div>
-			<div>{new Date(message.timestamp).toLocaleString()}</div>
-			<div>{message.body}</div>
-			{message.reactions.map(r => (
-				<div key={r.id}>
-					<div title={users.find(u => u.id === r.user_id)!.name}>
-						{r.reaction}
+		<div className="px-2">
+			<div
+				className="my-2 flex"
+				style={{
+					flexDirection: +message.author.id === userId ? "row" : "row-reverse",
+				}}
+				ref={bubbleRef}
+				onPointerEnter={e => {
+					setIsHovered(true);
+				}}
+				onPointerLeave={e => {
+					setIsHovered(false);
+				}}
+			>
+				<div
+					className="relative py-1 px-2 rounded w-4/5"
+					style={{
+						background:
+							+message.author.id === userId ? "rgb(21, 128, 61)" : "#444",
+						opacity: isHovered ? "1" : ".85",
+					}}
+				>
+					<div
+						className="absolute rounded-full right-1 transition cursor-pointer hover:bg-neutral-400 hover:bg-opacity-80"
+						style={{ visibility: isHovered ? "visible" : "hidden" }}
+						onClick={() => {
+							console.log("open messages options pane", message);
+						}}
+					>
+						<button className="">
+							<div className="-translate-y-0.5 w-6 h-6 flex justify-center items-start">
+								⌵
+							</div>
+						</button>
 					</div>
+					<div>{message.author.name}</div>
+					<small>{new Date(message.timestamp).toLocaleString()}</small>
+					<div>{message.body}</div>
+					{message.reactions.map(r => (
+						<div key={r.id}>
+							<div title={users.find(u => u.id === r.user_id)!.name}>
+								{r.reaction}
+							</div>
+						</div>
+					))}
 				</div>
-			))}
+				<div
+					className="flex p-1 items-center cursor-pointer"
+					onClick={() => {
+						console.log("open reactions panel", message);
+					}}
+				>
+					<button>
+						<span
+							className="transition"
+							style={{
+								transitionDuration: "300ms",
+								opacity: isHovered ? 1 : 0,
+							}}
+						>
+							🙂
+						</span>
+					</button>
+				</div>
+			</div>
 		</div>
 	);
 }
@@ -198,7 +250,7 @@ function Roster() {
 	);
 }
 
-function App() {
+function UserSelection() {
 	const dispatch = useDispatch();
 
 	const { data: users, isLoading } = useGetUsersQuery();
@@ -206,19 +258,25 @@ function App() {
 	if (isLoading || !users) return <div>Loading....</div>;
 
 	return (
+		<select
+			onChange={e => {
+				dispatch(setUserId(+e.target.value));
+			}}
+		>
+			{users.map(user => (
+				<option key={user.id} value={user.id}>
+					{user.name}
+				</option>
+			))}
+		</select>
+	);
+}
+
+function App() {
+	return (
 		<div className="grid grid-cols-6 h-screen">
 			<div className="border col-start-1 col-end-3">
-				<select
-					onChange={e => {
-						dispatch(setUserId(+e.target.value));
-					}}
-				>
-					{users.map(user => (
-						<option key={user.id} value={user.id}>
-							{user.name}
-						</option>
-					))}
-				</select>
+				<UserSelection />
 
 				<Roster />
 			</div>
