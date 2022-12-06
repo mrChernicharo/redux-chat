@@ -1,39 +1,29 @@
-import { Route, Routes } from "react-router-dom";
-import db from "./supabase";
+import { Suspense } from "react";
+import { Root } from "react-dom/client";
+import { useSelector } from "react-redux";
+import { RootState } from "./redux/store";
+import { useGetUsersQuery } from "./redux/users";
 
-function Chat() {
+function App() {
+	const appState = useSelector<RootState>(state => state.appState);
+
+	const { data: users, isLoading } = useGetUsersQuery();
+
+	if (isLoading) return <div>Loading....</div>;
+
 	return (
 		<div className="border">
 			<h1 className="text-4xl">Chat</h1>
+
+			<Suspense fallback={<div>Loadding</div>}>
+				<select>
+					{users.map(user => (
+						<option key={user.id}>{user.name}</option>
+					))}
+				</select>
+			</Suspense>
+			<pre>{JSON.stringify(appState)}</pre>
 		</div>
-	);
-}
-
-function Login() {
-	// const { data } = await db.from("users").select("*");
-
-	return (
-		<div className="border">
-			<h1 className="text-4xl">Login</h1>
-		</div>
-	);
-}
-
-function NotFound() {
-	return (
-		<div className="border">
-			<h1 className="text-4xl">NotFound</h1>
-		</div>
-	);
-}
-
-function App() {
-	return (
-		<Routes>
-			<Route path="/" element={<Login />} />
-			<Route path="/chat" element={<Chat />} />
-			<Route path="*" element={<NotFound />} />
-		</Routes>
 	);
 }
 
