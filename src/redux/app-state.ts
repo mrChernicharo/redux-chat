@@ -3,7 +3,7 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 export type AppState = { userId: number | null; chatId: number | null };
 
 const initialState: AppState = {
-	userId: null,
+	userId: 1,
 	chatId: null,
 };
 
